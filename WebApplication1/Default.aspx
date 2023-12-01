@@ -42,7 +42,7 @@
 		#Form1 {
 			display: block;
 		}
-		#Menu > * {
+		#menu > * {
 			margin: 10px;
 		}
 		html {
@@ -58,17 +58,8 @@
     <title></title>
 </head>
 <body>
-	<div id="Menu" style="position: absolute; bottom: 0; right: 0; border: solid; display: none; background-color: white; justify-items: center;">
+	<div id="menu" style="position: absolute; bottom: 0; right: 0; border: solid; display: none; background-color: white; justify-items: center;">
 		<span style="grid-row: 1; grid-column-start: 1; grid-column-end: 3;">RICETTE</span>
-		<span style="grid-row: 2; grid-column: 1;">RICETTA 1</span>
-		<span style="grid-row: 2; grid-column: 2;">AAA</span>
-		<span style="grid-row: 3; grid-column: 1;">RICETTA2</span>
-		<span style="grid-row: 3; grid-column: 2;">BBB</span>
-		<span style="grid-row: 4; grid-column: 1;">RICETTA3</span>
-		<span style="grid-row: 4;grid-column: 2;">CCC</span>
-		<button>IMPORTA</button>
-		<button>ESPORTA</button>
-
 	</div>
 	<form id="Form1">
 		<div id="header" style="overflow: auto;">
@@ -111,7 +102,7 @@
                 var updater = $.connection.hubMessageQueue;
 
 				document.getElementById("ricettebutton").onclick = function () {
-					var divricette = document.getElementById("Menu");
+					var divricette = document.getElementById("menu");
 					if(divricette.style.display == "grid")
 						divricette.style.display = "none";
 					else
@@ -183,7 +174,22 @@
 
 						node.appendChild(img);
 					}
-				}
+                }
+
+                updater.client.AddParameter = function (parameterName) {
+                    var menu = document.getElementById("menu");
+
+                    var desc = document.createElement("span");
+                    desc.innerHTML = "RICETTA " + ((menu.childElementCount + 1) / 2).toString();
+                    desc.style = "grid-row: " + ((menu.childElementCount + 2) / 2).toString() + "; grid-column: 1;";
+
+                    var item = document.createElement("span");
+                    item.innerHTML = parameterName;
+                    item.style = "grid-row: " + ((menu.childElementCount + 2) / 2).toString() + "; grid-column: 2;";
+
+                    menu.appendChild(desc);
+                    menu.appendChild(item);
+                }
 
 				$.connection.hub.start().done(function () {
 					updater.server.startMessageQueue();

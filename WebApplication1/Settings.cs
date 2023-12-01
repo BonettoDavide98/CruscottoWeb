@@ -14,7 +14,7 @@ namespace CruscottoWeb
         public int ActiveCams { get; set; }
         public int NumPages { get; set; }
         public int BytesPerPixel { get; set; }
-        public List<string> ParameterNames { get; set; }
+        public List<string> parameterNames;
 
         public Settings(int camID, int width, int height, int maxCams, int numPages, int bytesPerPixel)
         {
@@ -24,6 +24,7 @@ namespace CruscottoWeb
             MaxCams = maxCams;
             NumPages = numPages;
             BytesPerPixel = bytesPerPixel;
+            parameterNames = new List<string>();
         }
 
         public Settings(List<string> serializedData)
@@ -33,7 +34,7 @@ namespace CruscottoWeb
 
         public void AddParameterName(string parameterName)
         {
-            ParameterNames.Add(parameterName);
+            parameterNames.Add(parameterName);
         }
 
         public List<string> Serialize()
@@ -47,9 +48,8 @@ namespace CruscottoWeb
             data.Add(ActiveCams.ToString());
             data.Add(NumPages.ToString());
             data.Add(BytesPerPixel.ToString());
-            if (ParameterNames != null)
-                foreach (string parameterName in ParameterNames)
-                    data.Add(parameterName.ToString());
+            foreach (string parameterName in parameterNames)
+                data.Add(parameterName.ToString());
 
             return data;
         }
@@ -63,10 +63,16 @@ namespace CruscottoWeb
             ActiveCams = Int16.Parse(data[4]);
             NumPages = Int16.Parse(data[5]);
             BytesPerPixel = Int16.Parse(data[6]);
+            parameterNames = new List<string>();
             for (int i = 7; i < data.Count; i++)
             {
-                ParameterNames.Add(data[i]);
+                parameterNames.Add(data[i]);
             }
+        }
+
+        public List<string> getParameters()
+        {
+            return parameterNames;
         }
     }
 }

@@ -16,13 +16,15 @@ namespace CruscottoWeb
 
         int[] ScreenWidth = new int[MAX_CAMS];
         int[] ScreenHeight = new int[MAX_CAMS];
+
+        List<string> parameterNames = new List<string>();
         
         int MaxCams = 1;
         int bytePerPixel = 1;
 
         IPCMessageQueueServer<Tuple<int, byte[], int[]>>[] receiveQueues = null;
         IPCMessageQueueServer<List<string>> settingsQueue = null;
-        IPCMessageQueueClient<List<Tuple<string, string>>> sendQueue;
+        IPCMessageQueueClient<List<Tuple<string, string>>> sendQueue = null;
 
         public void StartMessageQueue()
         {
@@ -126,6 +128,13 @@ namespace CruscottoWeb
             {
                 bytePerPixel = settings.BytesPerPixel;
             }
+
+            //importa nomi parametri modificabili
+            if(settings.getParameters() != null)
+            {
+                parameterNames = settings.getParameters();
+                SetParameters(parameterNames);
+            }
         }
 
         //CLIENT BROADCASTS
@@ -158,6 +167,14 @@ namespace CruscottoWeb
         private void UpdateImage(int camNumber, string Base64Data)
         {
             Clients.All.UpdateImage(camNumber, Base64Data);
+        }
+
+        private void SetParameters(List<string> parameterNames)
+        {
+            foreach(string parameterName in parameterNames)
+            {
+                Clients.All.AddParameter(parameterName);
+            }
         }
 
         private void ResetSettings()
