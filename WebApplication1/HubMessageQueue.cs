@@ -13,7 +13,7 @@ namespace CruscottoWeb
     public class HubMessageQueue : Hub
     {
         //Numero massimo telecamere in contemporanea sullo schermo, fare attenzione alla risoluzione
-        const int MAX_CAMS = 2;
+        const int MAX_CAMS = 11;
 
         //arrays contenenti le risoluzioni di ogni telecamera, solitamente sono tutte uguali
         int[] ScreenWidth = new int[MAX_CAMS];
@@ -50,6 +50,8 @@ namespace CruscottoWeb
             
             if (sendQueue == null)
                 sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            sendQueue.Send(new List<Tuple<string, string>> { new Tuple<string, string>("SETUP", "") });
+           
         }
 
         //primo elemento = numero cam da aggiornare
@@ -231,11 +233,10 @@ namespace CruscottoWeb
 
         public void Set(string parameterName, string value)
         {
-            sendQueue.Send(new List<Tuple<string, string>> { new Tuple<string, string>("SETUP", "") });
-            //sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
-            //List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
-            //commandList.Add(new Tuple<string, string>("SET", parameterName + "/" + value));
-            //SendCommand(commandList);
+            sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
+            commandList.Add(new Tuple<string, string>("SET", parameterName + "/" + value));
+            SendCommand(commandList);
         }
 
         public void ChangePage(string page)

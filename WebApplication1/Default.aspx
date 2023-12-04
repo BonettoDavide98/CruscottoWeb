@@ -64,7 +64,7 @@
 	<form id="Form1">
 		<div id="header" style="overflow: auto;">
 			<div id="menu_homepage" style="float: left">
-				<img src="Images/home_icon.png" style="max-height: 8vh" />
+				<img src="Images/home_icon.png" style="max-height: 8vh; padding: 20px 0;" />
 			</div>
 			<div id="camselection" style="float: left; margin: 20px;">
 			</div>
@@ -135,19 +135,19 @@
 				};
 
                 //nasconde la telecamera camNumber
-				updater.client.HideCam = function (camNumber) {
-					document.getElementById("LiveImg" + camNumber.toString()).style.display = "none";
-				}
+                updater.client.HideCam = function (camNumber) {
+                    document.getElementById("LiveImg" + camNumber.toString()).style.display = "none";
+                };
 
                 //mostra la telecamera camNumber
-				updater.client.ShowCam = function (camNumber) {
-					document.getElementById("LiveImg" + camNumber.toString()).style.display = "inherit";
-				}
+                updater.client.ShowCam = function (camNumber) {
+                    document.getElementById("LiveImg" + camNumber.toString()).style.display = "inherit";
+                };
 
                 //crea i bottoni della selezione pagine
-				updater.client.SetPages = function (pages) {
+                updater.client.SetPages = function (pages) {
                     var node = document.getElementById("camselection");
-                    
+
                     for (let i = 1; i <= pages; i++) {
                         var button = document.createElement("input");
 
@@ -173,12 +173,12 @@
 
                         node.appendChild(button);
                     }
-				}
+                };
 
                 //crea un img per ogni telecamera che si vuole mostrare contemporaneamente
                 //il loro attributo src viene aggiornato costantemente dalla funzione precedente UpdateImage
-				updater.client.SetCams = function (cams) {
-					var node = document.getElementById("cams");
+                updater.client.SetCams = function (cams) {
+                    var node = document.getElementById("cams");
 
                     for (let i = 1; i <= cams; i++) {
                         var img = document.createElement("img");
@@ -189,7 +189,7 @@
 
                         node.appendChild(img);
                     }
-                }
+                };
 
                 //aggiunge il parametro specificato
                 //TODO: bozza
@@ -206,7 +206,7 @@
 
                     menu.appendChild(desc);
                     menu.appendChild(item);
-                }
+                };
 
                 //avvia la connessione e assegna funzioni aggiuntive
 				$.connection.hub.start().done(function () {
