@@ -98,9 +98,11 @@
 		</div>
 
 		<script type="text/javascript">
-			$(function() {
+            $(function () {
+                //instanzia connessione con hub
                 var updater = $.connection.hubMessageQueue;
 
+                //mostra/nasconde il div di selezione ricetta
 				document.getElementById("ricettebutton").onclick = function () {
 					var divricette = document.getElementById("menu");
 					if(divricette.style.display == "grid")
@@ -109,6 +111,7 @@
 						divricette.style.display = "grid";
                 };
 
+                //rimuove ogni telecamera e pagina
                 updater.client.ResetSettings = function () {
                     var cams = document.getElementById("cams");
                     while (cams.childElementCount > 0)
@@ -119,24 +122,29 @@
                         pages.removeChild(pages.firstChild);
                 };
 
+                //aggiorna l'immagine visualizzata dalla telecamera camNumber per simulare una live
 				updater.client.UpdateImage = function (camNumber, base64Data) {
 					document.getElementById("LiveImg" + camNumber.toString()).src = base64Data;
 				};
 
+                //aggiorna i contatori TOT, OK e KO
 				updater.client.UpdateStats = function (tot, ok, ko) {
 					document.getElementById("tot_counter").innerHTML = tot;
 					document.getElementById("ok_counter").innerHTML = ok;
 					document.getElementById("ko_counter").innerHTML = ko;
 				};
 
+                //nasconde la telecamera camNumber
 				updater.client.HideCam = function (camNumber) {
 					document.getElementById("LiveImg" + camNumber.toString()).style.display = "none";
 				}
-				
+
+                //mostra la telecamera camNumber
 				updater.client.ShowCam = function (camNumber) {
 					document.getElementById("LiveImg" + camNumber.toString()).style.display = "inherit";
 				}
 
+                //crea i bottoni della selezione pagine
 				updater.client.SetPages = function (pages) {
                     var node = document.getElementById("camselection");
                     
@@ -150,6 +158,8 @@
                         button.setAttribute("type", "button");
                         button.value = i.toString();
                         button.id = "buttonCam" + i.toString();
+
+                        //aggiunge ad ogni bottone la funzione di highlight dell'ultimo bottone cliccato
                         button.onclick = function () {
                             updater.server.changePage(this.value);
                             var buttons = document.getElementById("camselection").childNodes;
@@ -165,6 +175,8 @@
                     }
 				}
 
+                //crea un img per ogni telecamera che si vuole mostrare contemporaneamente
+                //il loro attributo src viene aggiornato costantemente dalla funzione precedente UpdateImage
 				updater.client.SetCams = function (cams) {
 					var node = document.getElementById("cams");
 
@@ -179,6 +191,8 @@
                     }
                 }
 
+                //aggiunge il parametro specificato
+                //TODO: bozza
                 updater.client.AddParameter = function (parameterName) {
                     var menu = document.getElementById("menu");
 
@@ -194,6 +208,7 @@
                     menu.appendChild(item);
                 }
 
+                //avvia la connessione e assegna funzioni aggiuntive
 				$.connection.hub.start().done(function () {
 					updater.server.startMessageQueue();
 

@@ -25,8 +25,6 @@ namespace CruscottoWeb
         int MaxCams = 1;
         int bytePerPixel = 1;
 
-        //code di messaggi MSMQ
-
         //array di code di ricevimento dati; nella tupla il primo int è l'ID della telecamera, byte[] è l'array dell'immagine (MASSIMO CIRCA 4000 kb)
         //e int[] è un array che contiene le statistiche TOT, OK, KO
         IPCMessageQueueServer<Tuple<int, byte[], int[]>>[] receiveQueues = null;
@@ -86,7 +84,8 @@ namespace CruscottoWeb
             UpdateStats(tupla.Item3[0], tupla.Item3[1], tupla.Item3[2]);
         }
 
-        //lista di string ricevuta in settingsQueue viene "deserializzata" in oggetto Settings e vengono applicate le impostazioni in essa contenute
+        //lista di string ricevuta in settingsQueue viene "deserializzata" dal metodo Settings.Deserialize o dal costruttore Settings(List<string>)
+        //in oggetto Settings e vengono applicate le impostazioni in essa contenute
         private void UpdateSettings(List<string> data)
         {
             ResetSettings();
@@ -146,6 +145,7 @@ namespace CruscottoWeb
             }
 
             //Definisce se l'immagine è in bianco e nero o a colori
+            //se bytePerPixel è == 1 e in B/N, altrimenti è a colori
             if (settings.BytesPerPixel != 0)
             {
                 bytePerPixel = settings.BytesPerPixel;
