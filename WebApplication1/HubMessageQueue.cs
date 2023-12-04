@@ -12,20 +12,36 @@ namespace CruscottoWeb
 {
     public class HubMessageQueue : Hub
     {
-        const int MAX_CAMS = 11;
+        //Numero massimo telecamere in contemporanea sullo schermo, fare attenzione alla risoluzione
+        const int MAX_CAMS = 2;
 
+        //arrays contenenti le risoluzioni di ogni telecamera, solitamente sono tutte uguali
         int[] ScreenWidth = new int[MAX_CAMS];
         int[] ScreenHeight = new int[MAX_CAMS];
 
+        //lista contenente nomi di vari parametri
         List<string> parameterNames = new List<string>();
         
         int MaxCams = 1;
         int bytePerPixel = 1;
 
+        //code di messaggi MSMQ
+
+        //array di code di ricevimento dati; nella tupla il primo int è l'ID della telecamera, byte[] è l'array dell'immagine (MASSIMO CIRCA 4000 kb)
+        //e int[] è un array che contiene le statistiche TOT, OK, KO
         IPCMessageQueueServer<Tuple<int, byte[], int[]>>[] receiveQueues = null;
+
+        //coda di messaggi che riceve un oggetto di tipo Settings "serializzato" a stringa con il suo metodo Serialize
+        //TODO: refactoring per serializzare in byte[]; non sono riuscito a farlo perchè il BinaryMessageFormatter di IPCMessageQueue dava eccezioni
         IPCMessageQueueServer<List<string>> settingsQueue = null;
+
+        //coda di messaggi che invia comandi al programma dove gira Sherlock o altro; nella tupla il primo string è l'identificatore del comando,
+        //ad esempio START, STOP, SET, ecc..., mentre il secondo string contiene gli argomenti da passare
+        //TODO: forse creare una classe al posto che usare tupla? (ma la classe cambia da programma a programma)
         IPCMessageQueueClient<List<Tuple<string, string>>> sendQueue = null;
 
+        //inizializza settingsQueue e sendQueue, chiamato da Default.aspx
+        //le code contenute nell'array receiveQueues verranno inizializzate quando si riceveranno i Setting
         public void StartMessageQueue()
         {
             if(receiveQueues == null)
@@ -36,7 +52,6 @@ namespace CruscottoWeb
             
             if (sendQueue == null)
                 sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
-            sendQueue.Send(new List<Tuple<string, string>> { new Tuple<string, string>("SETUP", "") });
         }
 
         //primo elemento = numero cam da aggiornare
@@ -47,6 +62,7 @@ namespace CruscottoWeb
             int width = ScreenWidth[tupla.Item1];
             int height = ScreenHeight[tupla.Item1];
 
+            //algoritmo cambia se l'immagine è a colori o in bianco e nero
             Bitmap bmp = new Bitmap(width, height, (bytePerPixel == 1) ? PixelFormat.Format8bppIndexed : PixelFormat.Format32bppRgb);
             if (bytePerPixel == 1)
             {
@@ -62,6 +78,7 @@ namespace CruscottoWeb
             Marshal.Copy(tupla.Item2, 0, bmpData.Scan0, tupla.Item2.Length);
             bmp.UnlockBits(bmpData);
 
+            //immagine viene convertita in base64
             System.IO.MemoryStream ms = new System.IO.MemoryStream();
             bmp.Save(ms, ImageFormat.Jpeg);
             byte[] byteImage = ms.ToArray();
@@ -69,6 +86,7 @@ namespace CruscottoWeb
             UpdateStats(tupla.Item3[0], tupla.Item3[1], tupla.Item3[2]);
         }
 
+        //lista di string ricevuta in settingsQueue viene "deserializzata" in oggetto Settings e vengono applicate le impostazioni in essa contenute
         private void UpdateSettings(List<string> data)
         {
             ResetSettings();
@@ -142,6 +160,7 @@ namespace CruscottoWeb
         }
 
         //CLIENT BROADCASTS
+        //metodi che vanno a richiamare i metodi corrispondenti in ogni client (si veda il Javascript in Default.aspx)
         #region client broadcasts
         private void UpdateStats(int tot, int ok, int ko)
         {
@@ -186,17 +205,17 @@ namespace CruscottoWeb
             Clients.All.ResetSettings();
         }
         #endregion client broadcasts
-
-
+        
+        //metodo generale da chiamare per inviare un comando
         private void SendCommand(List<Tuple<string, string>> commandList)
         {
             sendQueue.Send(commandList);
         }
 
+        //inizio comandi di esempio
         public void Stop()
         {
-            if(sendQueue == null)
-                sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
             List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
             commandList.Add(new Tuple<string, string>("STOP", ""));
             SendCommand(commandList);
@@ -204,8 +223,7 @@ namespace CruscottoWeb
 
         public void Start()
         {
-            if (sendQueue == null)
-                sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
             List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
             commandList.Add(new Tuple<string, string>("START", ""));
             SendCommand(commandList);
@@ -213,20 +231,20 @@ namespace CruscottoWeb
 
         public void Set(string parameterName, string value)
         {
-            if (sendQueue == null)
-                sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
-            List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
-            commandList.Add(new Tuple<string, string>("SET", parameterName + "/" + value));
-            SendCommand(commandList);
+            sendQueue.Send(new List<Tuple<string, string>> { new Tuple<string, string>("SETUP", "") });
+            //sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            //List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
+            //commandList.Add(new Tuple<string, string>("SET", parameterName + "/" + value));
+            //SendCommand(commandList);
         }
 
         public void ChangePage(string page)
         {
-            if (sendQueue == null)
-                sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
+            sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
             List<Tuple<string, string>> commandList = new List<Tuple<string, string>>();
             commandList.Add(new Tuple<string, string>("PAGE", page));
             SendCommand(commandList);
         }
+        //fine comandi di esempio
     }
 }
