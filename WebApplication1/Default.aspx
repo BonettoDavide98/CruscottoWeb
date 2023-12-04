@@ -140,40 +140,42 @@
 				updater.client.SetPages = function (pages) {
 					var node = document.getElementById("camselection");
 
-					for (let i = 1; i <= pages; i++) {
-						var button = document.createElement("input");
+                    if (pages != node.childElementCount)
+					    for (let i = 1; i <= pages; i++) {
+						    var button = document.createElement("input");
 
-						button.className = "button_grey";
-						if (i = 1) {
-							button.className += " button_grey_selected";
-						}
-						button.setAttribute("type", "button");
-						button.value = i.toString();
-						button.id = "buttonCam" + i.toString();
-						button.onclick = function () {
-							updater.server.changePage(this.value);
-							var buttons = document.getElementById("camselection").childNodes;
-							for(let i = 1; i < buttons.length; i++)
-								buttons[i].classList.remove("button_grey_selected");
-							this.classList.add("button_grey_selected");
-						};
+						    button.className = "button_grey";
+						    if (i = 1) {
+							    button.className += " button_grey_selected";
+						    }
+						    button.setAttribute("type", "button");
+						    button.value = i.toString();
+						    button.id = "buttonCam" + i.toString();
+						    button.onclick = function () {
+							    updater.server.changePage(this.value);
+							    var buttons = document.getElementById("camselection").childNodes;
+							    for(let i = 1; i < buttons.length; i++)
+								    buttons[i].classList.remove("button_grey_selected");
+							    this.classList.add("button_grey_selected");
+						    };
 
-						node.appendChild(button);
-					}
+						    node.appendChild(button);
+					    }
 				}
 
 				updater.client.SetCams = function (cams) {
 					var node = document.getElementById("cams");
 
-					for (let i = 1; i <= cams; i++) {
-						var img = document.createElement("img");
+                    if(cams != node.childElementCount)
+					    for (let i = 1; i <= cams; i++) {
+						    var img = document.createElement("img");
 
-						img.className = "cam";
-						img.id = "LiveImg" + i.toString();
-						img.src = "Images/Offline_Img.bmp";
+						    img.className = "cam";
+						    img.id = "LiveImg" + i.toString();
+						    img.src = "Images/Offline_Img.bmp";
 
-						node.appendChild(img);
-					}
+						    node.appendChild(img);
+					    }
                 }
 
                 updater.client.AddParameter = function (parameterName) {
