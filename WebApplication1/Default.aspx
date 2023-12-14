@@ -111,6 +111,8 @@
 						divricette.style.display = "grid";
                 };
 
+                //i metodi qui sotto sono chiamati dai broadcast di HubMessageQueue
+
                 //rimuove ogni telecamera e pagina
                 updater.client.ResetSettings = function () {
                     var cams = document.getElementById("cams");
@@ -152,6 +154,7 @@
                         var button = document.createElement("input");
 
                         button.className = "button_grey";
+                        //preseleziona il primo bottone
                         if (i == 1) {
                             button.className += " button_grey_selected";
                         }

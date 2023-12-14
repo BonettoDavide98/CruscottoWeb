@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Web;
 using Microsoft.AspNet.SignalR;
 using Qualivision.InterprocessCommunication;
@@ -13,7 +16,7 @@ namespace CruscottoWeb
     public class HubMessageQueue : Hub
     {
         //Numero massimo telecamere in contemporanea sullo schermo, fare attenzione alla risoluzione
-        const int MAX_CAMS = 11;
+        const int MAX_CAMS = 2;
 
         //arrays contenenti le risoluzioni di ogni telecamera, solitamente sono tutte uguali
         int[] ScreenWidth = new int[MAX_CAMS];
@@ -25,27 +28,27 @@ namespace CruscottoWeb
         int MaxCams = 1;
         int bytePerPixel = 1;
 
-        //array di code di ricevimento dati; nella tupla il primo int è l'ID della telecamera, byte[] è l'array dell'immagine (MASSIMO CIRCA 4000 kb)
-        //e int[] è un array che contiene le statistiche TOT, OK, KO
-        IPCMessageQueueServer<Tuple<int, byte[], int[]>>[] receiveQueues = null;
+        MemoryMappedFile[] mmfs = new MemoryMappedFile[MAX_CAMS];
+
+        IPCMessageQueueServer<int> statsQueue = null;
 
         //coda di messaggi che riceve un oggetto di tipo Settings "serializzato" a stringa con il suo metodo Serialize
-        //TODO: refactoring per serializzare in byte[]; non sono riuscito a farlo perchè il BinaryMessageFormatter di IPCMessageQueue dava eccezioni
+        //TODO: refactoring per serializzare in byte[]; non sono riuscito a farlo perchè il BinaryMessageFormatter di IPCMessageQueue dava grane
         IPCMessageQueueServer<List<string>> settingsQueue = null;
 
         //coda di messaggi che invia comandi al programma dove gira Sherlock o altro; nella tupla il primo string è l'identificatore del comando,
         //ad esempio START, STOP, SET, ecc..., mentre il secondo string contiene gli argomenti da passare
-        //TODO: forse creare una classe al posto che usare tupla? (ma la classe cambia da programma a programma)
+        //TODO: creare una classe al posto che usare tupla? (ma la classe dovrà cambiare da programma a programma)
         IPCMessageQueueClient<List<Tuple<string, string>>> sendQueue = null;
 
         //inizializza settingsQueue e sendQueue, chiamato da Default.aspx
         //le code contenute nell'array receiveQueues verranno inizializzate quando si riceveranno i Setting
         public void StartMessageQueue()
         {
-            if(receiveQueues == null)
-                receiveQueues = new IPCMessageQueueServer<Tuple<int, byte[], int[]>>[MAX_CAMS];
+            if (statsQueue == null)
+                statsQueue = new IPCMessageQueueServer<int>("bitmapQueue1", UpdateBitmap);
 
-            if(settingsQueue == null)
+            if (settingsQueue == null)
                 settingsQueue = new IPCMessageQueueServer<List<string>>("settingsQueue", UpdateSettings);
             
             if (sendQueue == null)
@@ -57,10 +60,20 @@ namespace CruscottoWeb
         //primo elemento = numero cam da aggiornare
         //secondo elemento = array di byte contenente l'immagine da visualizzare (8 bit per B/N, 32 bit per colore)
         //terzo elemento = contatori TOT, OK, KO
-        private void UpdateBitmap(Tuple<int, byte[], int[]> tupla)
+        private void UpdateBitmap(int index)
         {
-            int width = ScreenWidth[tupla.Item1];
-            int height = ScreenHeight[tupla.Item1];
+            int width = ScreenWidth[index];
+            int height = ScreenHeight[index];
+
+            byte[] imageArray;
+
+            using (MemoryMappedViewStream stream = mmfs[index].CreateViewStream())
+            {
+                BinaryReader br = new BinaryReader(stream);
+                imageArray = br.ReadBytes((int)stream.Length);
+            }
+
+            UpdateStats(imageArray.Length, 0, 0);
 
             //algoritmo cambia se l'immagine è a colori o in bianco e nero
             Bitmap bmp = new Bitmap(width, height, (bytePerPixel == 1) ? PixelFormat.Format8bppIndexed : PixelFormat.Format32bppRgb);
@@ -75,15 +88,14 @@ namespace CruscottoWeb
             BitmapData bmpData = bmp.LockBits(
                                  new Rectangle(0, 0, bmp.Width, bmp.Height),
                                  ImageLockMode.WriteOnly, bmp.PixelFormat);
-            Marshal.Copy(tupla.Item2, 0, bmpData.Scan0, tupla.Item2.Length);
+            Marshal.Copy(imageArray, 0, bmpData.Scan0, imageArray.Length);
             bmp.UnlockBits(bmpData);
 
             //immagine viene convertita in base64
             System.IO.MemoryStream ms = new System.IO.MemoryStream();
             bmp.Save(ms, ImageFormat.Jpeg);
             byte[] byteImage = ms.ToArray();
-            UpdateImage(tupla.Item1, "data:image/png;base64," + Convert.ToBase64String(byteImage));
-            UpdateStats(tupla.Item3[0], tupla.Item3[1], tupla.Item3[2]);
+            UpdateImage(index, "data:image/png;base64," + Convert.ToBase64String(byteImage));
         }
 
         //lista di string ricevuta in settingsQueue viene "deserializzata" dal metodo Settings.Deserialize o dal costruttore Settings(List<string>)
@@ -97,9 +109,9 @@ namespace CruscottoWeb
             //Dimensioni schermo
             if (settings.Width != 0 && settings.Height != 0)
             {
-                if (settings.CamID == 0)
+                if (settings.CamID == -1)
                 {
-                    for (int i = 1; i < 11; i++)
+                    for (int i = 0; i < MAX_CAMS; i++)
                     {
                         ScreenWidth[i] = settings.Width;
                         ScreenHeight[i] = settings.Height;
@@ -127,16 +139,23 @@ namespace CruscottoWeb
                     MaxCams = MAX_CAMS;
 
                 SetCams(MaxCams);
-                for (int i = 1; i <= MaxCams; i++)
+                for (int i = 0; i < MaxCams; i++)
                 {
-                    receiveQueues[i] = new IPCMessageQueueServer<Tuple<int, byte[], int[]>>("bitmapQueue" + i, UpdateBitmap);
+                    try
+                    {
+                        mmfs[i] = MemoryMappedFile.OpenExisting("img" + i);
+                    }
+                    catch
+                    {
+                        throw new Exception();
+                    }
                 }
             }
 
             //Attiva solo le prime n telecamere
             if (settings.ActiveCams != 0)
             {
-                for (int i = 1; i <= settings.ActiveCams; i++)
+                for (int i = 0; i < settings.ActiveCams; i++)
                 {
                     ShowCam(i);
                 }
@@ -214,7 +233,7 @@ namespace CruscottoWeb
             sendQueue.Send(commandList);
         }
 
-        //inizio comandi di esempio
+        //comandi di esempio
         public void Stop()
         {
             sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
