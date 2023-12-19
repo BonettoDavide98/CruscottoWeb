@@ -51,7 +51,6 @@ namespace CruscottoWeb
             if (sendQueue == null)
                 sendQueue = new IPCMessageQueueClient<List<Tuple<string, string>>>("ASPtoProgram");
             sendQueue.Send(new List<Tuple<string, string>> { new Tuple<string, string>("SETUP", "") });
-           
         }
 
         //primo elemento = numero cam da aggiornare

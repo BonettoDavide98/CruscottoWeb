@@ -120,6 +120,10 @@
                     var pages = document.getElementById("camselection");
                     while (pages.childElementCount > 0)
                         pages.removeChild(pages.firstChild);
+                    
+                    var params = document.getElementById("menu");
+                    while (params.childElementCount > 1)
+                        params.removeChild(params.lastChild);
                 };
 
                 //aggiorna l'immagine visualizzata dalla telecamera camNumber per simulare una live
